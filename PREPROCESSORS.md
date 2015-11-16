@@ -17,7 +17,7 @@ There can be, however, a lot more to pre-processors than just getting DNA and pi
 A smart pre-processor can significantly speed up the time taken to make the output. 
 
 The rest of this document focuses on the known optimizations that preprocessors can do to speed things up, which is something 
-you will want to read about if you intend on making your own pre-processors. They broadly fall into the 7 catagories:
+you will want to read about if you intend on making your own pre-processors. They broadly fall into 7 catagories:
 
 - run length encoding,
 - fragmentation,
@@ -33,12 +33,12 @@ exact same fragments multiple times over. For example, if the *genome* was:
 
                                                ACGTTTAACGTTGCA
 
-We might expect our sorted sequences to be:
+We might expect our sorted sequences/reads to be:
 
                   ACGT ACGT ACGTT CGT CGTTT CGTTT TTTAA TAACG AACGT ACGTT ACGTT TTGC TGCA
 
 Note the repitition of some adjacent DNA sequences such as the first two reads. Now we COULD pipe these reads directly into ACGTrie,
-and it would to do **13** insertions in total. However, we could also keep a little running buffer in the preprocessor which stores
+and it would do **13** insertions in total. However, we could also keep a little running buffer in the preprocessor which stores
 the fragments and their frequency, and then pass the fragments and their counts to ACGTrie in CSV format. For example, if our
 buffer stored 2 fragments at a time:
 
@@ -51,20 +51,19 @@ we could get it down to just **9** insertions - but of course if we could do tha
 in the first place because we have essentially created a hash table :) But since hash tables will not fit into memory, there is a 
 trade off for how big the buffer should be, and how often we send buffered data to ACGTrie. 
 This practice is commonly known as Run Length Encoding or RLE for short, and it is the first optimization your pre-processor can do.
-You do not have to do anything special to get RLE for ACGTrie other than send it comma-delimited, newline-sepurated text rather than
-just standard newline sepurated text.
+You do not have to do anything special to get RLE for ACGTrie other than send it CSV data (DNA,count) rather than just standard newline separated text.
 
 # Fragmentation
 
 While it might be nice to make an ACGTrie of just input sequences/reads, most of the time we actually are interested in the DNA composition. To go from DNA fragments/reads to DNA composition, all we need to do is fragment our read into all the possible sub-fragments (note: I know the terminiology is confusing because a read is already a fragment of the genome, so we are "fragmenting fragments to get sub-fragments"!). By way of example, if we had the DNA 'ACGT', we would fragment it like so:
 
-                                   'A', 'C', 'G', 'T', 'AC', 'CG', 'GT', 'ACG', 'CGT', 'ACGT'
+                              'A', 'C', 'G', 'T', 'AC', 'CG', 'GT', 'ACG', 'CGT', 'ACGT'
 
-This can either be done by either the pre-processor, or by ACGTrie it itself if you use the --fragment parameter. While the latter is certainly simpler, and allows for situations such as piping data straight out of a file or database, it is actually often beneficial to have the pre-processor do it for a number of reasons. The first is that we saw previously that keeping a buffer of fragments can reduce the amount of repetition ACGTrie has to do. Well keeping a buffer of sub-fragments is *even more* beneficial, because subfragments are far less likely to be unqiue compared to fragments, and the more we can pile up before sending to ACGTrie, the less work ACGTrie has to do!
+This can either be done by either the pre-processor, or by ACGTrie itself if you use the --fragment parameter. While the latter is certainly simpler, and allows for situations such as piping data straight out of a file or database, it is actually often beneficial to have the pre-processor do it for a number of reasons. The first is that we saw previously that keeping a buffer of fragments can reduce the amount of repetition ACGTrie has to do. Well keeping a buffer of sub-fragments is *even more* beneficial, because subfragments are far less likely to be unqiue compared to fragments, and the more we can pile up before sending to ACGTrie, the less work ACGTrie has to do!
 
-But there is another, even better reason. In the above example, ACGTrie would have to find the A row, then +1. Then later find the AC row and +1. Then the ACG row and +1. And finally the ACGT row a +1. That requires 4 sepurate trips to the trie to complete. A **much** more efficient method would be to fragment the data in a special way:
+But there is another, even better reason. In the above example, ACGTrie would have to find the A row, then +1. Then later find the AC row and +1. Then the ACG row and +1. And finally the ACGT row a +1. That requires 4 separate trips to the trie to complete. A **much** more efficient method would be to fragment the data in a special way:
 
-                                                   'ACGT', 'CGT', 'GT', 'T'
+                                                'ACGT', 'CGT', 'GT', 'T'
 
 and then tell ACGTrie to use the special --walk parameter. This means that for every row in the table that ACGTrie visits to get to its destination row, it +1s along the way. This means instead of 10 trips to the trie, we only need 4. The downside of this is that the pre-processor has to fragment in this very specific way. Fortunately, it is not that complicated - all you do is take a bite off the left of the string 1 character at a time until there is nothing left.
 The best thing about this method is that it also works seemlessly with Run Length Encoding, as ACGTrie can +X to every row as it walks the trie.
