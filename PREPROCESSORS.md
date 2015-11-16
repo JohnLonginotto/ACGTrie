@@ -36,7 +36,7 @@ exact same fragments multiple times over. For example, if the *genome* was:
 
 We might expect our sorted sequences to be:
 
-                  ACGT ACGT ACGTT CGT CGTTT CGTTT TTTAA TTTGC AACGT ACGTT ACGTT TTGC TGCA
+                  ACGT ACGT ACGTT CGT CGTTT CGTTT TTTAA TAACG AACGT ACGTT ACGTT TTGC TGCA
 
 Note the repitition of some adjacent DNA sequences such as the first two reads. Now we COULD pipe these reads directly into ACGTrie,
 and it would to do **13** insertions in total. However, we could also keep a little running buffer in the preprocessor which stores
