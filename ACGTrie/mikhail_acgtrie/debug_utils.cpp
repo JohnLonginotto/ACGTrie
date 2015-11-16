@@ -243,7 +243,7 @@ time_func_guard::~time_func_guard()
 		}
 
 		if (functionsInfo_.size() > 100000)
-			throw std::exception("Functions time statistics is too large");
+			THROW_EXCEPTION("Functions time statistics is too large");
 		//if (functionInfo.callCount == 2)   //d_
 		//	TRACE_VERBOSE(("FUNCTION %50s call N2", funcName_));
 	}
@@ -284,7 +284,7 @@ time_func_guard::~time_func_guard()
 	//	TFunctionInfo& functionInfo = functionsInfo_[std::string(funcName_)];
 
 	//	if (functionsInfo_.size() > 100000)
-	//		DECORE_THROW_EXCEPTION<decore::Exception>("Functions time statistics is too large");
+	//		THROW_EXCEPTION("Functions time statistics is too large");
 	//	if (functionInfo.callCount == 2)   //d_
 	//		TRACE_VERBOSE(("FUNCTION %50s call N2", funcName_.c_str()));
 	//}

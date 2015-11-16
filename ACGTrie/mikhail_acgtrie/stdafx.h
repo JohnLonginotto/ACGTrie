@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <Windows.h>
-#undef min
-#undef max
+//#include <Windows.h>
+//#undef min
+//#undef max
 #include <assert.h>
 //#include <conio.h>
 //#include <iostream>
@@ -20,9 +20,12 @@
 #include <string>
 #include <vector>
 
-//#if defined(_DEBUG) || defined(WINES_CHECK_ASSERTS)
+//#if defined(_DEBUG) || defined(CHECK_ASSERTS)
 //  #undef assert
-//  #define assert(exp) (void)( (exp) || (throw std::exception("Assertion failed: "	#exp), 0) )
-//  //#define assert(exp) (void)( (exp) || (throw std::exception(FormatStr("Assertion failed: %s (file %s, line %d)",\
+//  #define assert(exp) (void)( (exp) || (THROW_EXCEPTION("Assertion failed: "	#exp), 0) )
+//  //#define assert(exp) (void)( (exp) || (THROW_EXCEPTION(FormatStr("Assertion failed: %s (file %s, line %d)",\
 //		//	#exp, __FILE__, __LINE__)), 0) )
 //#endif
+
+#define THROW_EXCEPTION(mess) throw std::runtime_error(mess)
+

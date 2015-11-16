@@ -113,7 +113,8 @@ void CDnaTrieBuilder::AddDna(const std::string &dnaStr, int count)
 
 				if (nextRowInd != TTrieRow::c_emptyRowInd)           // if temp != 0:
 				{
-					assert(nextRowInd > rowInd && nextRowInd < m_rowCount);
+					assert(nextRowInd < m_rowCount);
+					//assert(nextRowInd > rowInd && nextRowInd < m_rowCount);
 					rowInd = nextRowInd;                               // row = temp
 					o++;
 					//printf("%s: row %d, o %d\n", dnaStr.c_str(), rowInd, o);  //d_
@@ -189,7 +190,7 @@ void CDnaTrieBuilder::WriteToFiles(const std::string &fileNameBegin) const
 #define PRINT_ARRAY_SUM(arr) sum = 0; \
 	for (i = 0; i < m_rowCount; i++) \
 		sum += m_table[i].arr; \
-	printf("%I64d ", sum);
+	printf("%lld", sum);
 
 void CDnaTrieBuilder::PrintCheckSum()
 {
@@ -198,18 +199,23 @@ void CDnaTrieBuilder::PrintCheckSum()
 
 	printf("Sums: ");
 	PRINT_ARRAY_SUM(a);
+	printf(" "); 
 	PRINT_ARRAY_SUM(c);
+	printf(" "); 
 	PRINT_ARRAY_SUM(t);
+	printf(" "); 
 	PRINT_ARRAY_SUM(g);
+	printf(" "); 
 	PRINT_ARRAY_SUM(count)
+	printf(" "); 
 	PRINT_ARRAY_SUM(seq.up2BitCode);
 	printf("\n"); 
 }
 
 #define PRINT_ARRAY(arr, arrOutName) printf("%s: ", #arrOutName); \
 	for (i = 0; i < m_rowCount - 1; i++) \
-	  printf("%I64d, ", unsigned long long(m_table[i].arr)); \
-	printf("%I64d\n", unsigned long long(m_table[i].arr));
+	  printf("%lld, ", (unsigned long long)(m_table[i].arr)); \
+	printf("%lld\n", (unsigned long long)(m_table[i].arr));
 
 void CDnaTrieBuilder::PrintTable()
 {

@@ -1,6 +1,10 @@
 #pragma once
 
-#include "debug_utils.h"
+#ifdef WINDOWS
+#  include "debug_utils.h"
+#else
+#  define FUNC_GUARD
+#endif
 
 // TODO? to use masks arrays for 3 << (charInd * 2) and binary 111111s ((c_one << (charCount * 2)) - 1)
 

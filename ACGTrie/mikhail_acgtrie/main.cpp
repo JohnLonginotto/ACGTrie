@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "DnaTrieBuilder.h"
 
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+
 void TrimRight(std::string &st)
 {
 	size_t i;
@@ -24,7 +27,7 @@ void LoadDataToTrie(CDnaTrieBuilder &trieBuilder, const std::string &inputFileNa
 	int readStrCount = 0;
 
 	if (!f)
-		throw std::exception("Couldn't open input file");
+		THROW_EXCEPTION("Couldn't open input file");
 
 	buf[0] = 0;
 	while (true)
@@ -48,9 +51,9 @@ void LoadDataToTrie(CDnaTrieBuilder &trieBuilder, const std::string &inputFileNa
 		int count = -1;
 
 		if (commaPos == std::string::npos)
-			throw std::exception("No comma in input string");
+			THROW_EXCEPTION("No comma in input string");
 		if (sscanf(str.c_str() + commaPos + 1, "%d", &count) != 1 || count <= 0)
-			throw std::exception("Invalid DNA count");
+			THROW_EXCEPTION("Invalid DNA count");
 	
 		str.resize(commaPos);
 
@@ -92,23 +95,23 @@ int main(int argc, char* argv[])
 			if (stricmp(str, "-i") == 0)
 			{
 				if (!nextArgExists)
-					throw std::exception("Input file is not specified");
+					THROW_EXCEPTION("Input file is not specified");
 				inputFileName = nextStr;
 				i++;
 			}
 			else  if (stricmp(str, "-o") == 0)
 			{
 				if (!nextArgExists)
-					throw std::exception("Output file is not specified");
+					THROW_EXCEPTION("Output file is not specified");
 				outputFileNameBegin = nextStr;
 				i++;
 			}
 			else  if (stricmp(str, "--rows") == 0)
 			{
 				if (!nextArgExists)
-					throw std::exception("Rows value is not specified");
+					THROW_EXCEPTION("Rows value is not specified");
 				if (sscanf(nextStr, "%d", &allocRowCount) != 1 || allocRowCount < 1)
-					throw std::exception("Invalid rows value");
+					THROW_EXCEPTION("Invalid rows value");
 				i++;
 			}
 		}
@@ -116,7 +119,7 @@ int main(int argc, char* argv[])
 		trieBuilder.ResizeTable(allocRowCount);
 
 		if (outputFileNameBegin.empty())
-			throw std::exception("No output file specified");
+			THROW_EXCEPTION("No output file specified");
 		
 		LoadDataToTrie(trieBuilder, inputFileName);
 		trieBuilder.WriteToFiles(outputFileNameBegin);

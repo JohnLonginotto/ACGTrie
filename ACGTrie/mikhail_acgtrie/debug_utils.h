@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Windows.h>
+#undef min
+#undef max
+
 #include <map>
 
 #ifndef TRACE_DETAIL_LEVEL

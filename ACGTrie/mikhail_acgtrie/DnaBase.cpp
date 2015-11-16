@@ -12,7 +12,7 @@ int CSequenceUp2Bit::GetLength() const
 	if ((up2BitCode >> 32) == 0)
 	{
 		zeroBitCount = 32;
-		curBlock = unsigned int(up2BitCode);
+		curBlock = (unsigned int)(up2BitCode);
 	}
 	else 
 		curBlock = up2BitCode >> 32;
@@ -75,7 +75,7 @@ void CDna2Bits::AssignFromString(const std::string &dnaStr)
 				case 'G':
 					break;
 				default:
-					throw std::exception("Invalid input character");
+					THROW_EXCEPTION("Invalid input character");
 			}
 			curPortion |= TDna2BitsPortion((ch >> 1) & 3) << (i * 2);
 		}
@@ -151,10 +151,10 @@ int CDna2Bits::GetFirstNonZeroCharacter(TDna2BitsPortion codesDiff)
 	if ((codesDiff & 0xFFFFFFFF) == 0)
 	{
 		zeroBitCount = 32;
-		curBlock = unsigned int(codesDiff >> 32);
+		curBlock = (unsigned int)(codesDiff >> 32);
 	}
 	else 
-		curBlock = unsigned int(codesDiff);
+		curBlock = (unsigned int)(codesDiff);
 	
 	if (curBlock == 0)
 		return (zeroBitCount + 32) / 2;    // I suppose this is very typical case
@@ -186,14 +186,14 @@ int CDna2Bits::GetFirstNonZeroCharacter(TDna2BitsPortion codesDiff)
 void CDna2Bits::RunUnitTests()
 {
 	if (GetFirstNonZeroCharacter(0) != sizeof(TDna2BitsPortion) * 4)
-		throw std::exception("CDna2Bits unit test failed");
+		THROW_EXCEPTION("CDna2Bits unit test failed");
 	assert(sizeof(TDna2BitsPortion) == 8);  
 	for (int i = 0; i < 64; i++)
 	{
 		if (GetFirstNonZeroCharacter(c_one << i) != i / 2)
-			throw std::exception("CDna2Bits unit test failed"); 
+			THROW_EXCEPTION("CDna2Bits unit test failed"); 
 		if (GetFirstNonZeroCharacter((c_one << i) | (c_one << 62)) != i / 2)
-			throw std::exception("CDna2Bits unit test failed"); 
+			THROW_EXCEPTION("CDna2Bits unit test failed"); 
 	}	
 }
 
