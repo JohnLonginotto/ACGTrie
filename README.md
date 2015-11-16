@@ -20,4 +20,4 @@ So the ACGTrie project has two primary goals:
 - To make getting the DNA composition statistics as stress-free as possible.
 - To make the output format as convenient as possible for others to pick up and hack on - to find interesting and new ways to analyse, compare and contrast DNA composition information from one or more samples.
 
-To read more on how we aim to go about doing that, check out the OUTPUT, PREPROCESSORS, and UP2BIT in the docs directory :)
+To read more on how we aim to go about doing that, check out the OUTPUT, PREPROCESSORS, and UP2BIT readmes in the docs directory :)
