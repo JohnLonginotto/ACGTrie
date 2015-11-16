@@ -58,7 +58,7 @@ Which is just the number **1** in binary. If you see in the code if statements a
 this is why; we are actually asking if it's empty or not.
 
 And that's one of the great things about the up2bit format - because we read right to left and all unused spaces are added to 
-the left, whatever fixed space you store up2bit data in, it wont change the value the binary represents. *ACTG* in up2bit is **always** 
+the left, whatever fixed space you store up2bit data in, it wont change the value that the binary represents. *ACTG* in up2bit is **always** 
  *228*, whether you store it in 8bits, 16bits, 32bits, 64bits, or even 3234983488bits; and no data is always *1*.
 You now know pretty much everything needed to impliment and decode the up2bit format, but here are some Frequently Asked Questions for the curious:
 
@@ -112,10 +112,7 @@ extra N bases are added to the next rows seq, and so on. So a 99bp fragment woul
 However that is only true for 64bit columns. There's nothing stopping you from editing the code and using 128bits or even 
 higher for the seq column - then you could store a lot more DNA before we have to break and go to a new row. While 64bit columns
 are good for fragments around 50bp in length, I highly recommend increasing this to something higher if your fragments are longer
-than 50bp. Really, it depends on your data. If you do change the array size, just remember to change all occurences in this file 
-of '32' to half of whatever you choose your new size will be, and then all occurences of '64' in this file to your new size. 
-Everything else, as Steve Jobs would say, should "just work", since the headers contain the array sizes, and all programs that we
-write to parse ACGTrie data is compatible with arrays of variable size :)
+than 50bp. Really, it depends on your data. If you do change the array size, everything else, as Steve Jobs would say, should "just work", since the file headers contain the array sizes, and all programs that we write to parse ACGTrie data is compatible with arrays of variable size :)
                                                                                                       
  This concludes all the information I can provide about the up2bit encoding. If you can think of an   
  improvement to the format let me know, and we can break backwards compatibility together! \o/
