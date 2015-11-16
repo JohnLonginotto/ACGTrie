@@ -58,7 +58,7 @@ class ACGTrieBase(object):
         raise NotImplementedError()
 
     def to_table(self, max_rows=None):
-        fmt = '{:>5} {:>5} {:>5} {:>5} {:>5} {:>5} {:<5}'
+        fmt = '{:>8} {:>8} {:>8} {:>8} {:>8} {:>8} {:<8}'
         output = [fmt.format('row', 'A', 'C', 'T', 'G', '#', 'Seq')]
         for idx, row in enumerate(self.rows):
             if max_rows is not None and idx >= max_rows:

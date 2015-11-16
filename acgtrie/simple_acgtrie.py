@@ -48,7 +48,7 @@ class ScanResults(object):
         )
 
 
-class ACGTrie(ACGTrieBase):
+class SimpleACGTrie(ACGTrieBase):
     def __init__(self):
         self._rows = [Row()]
 

@@ -1,8 +1,3 @@
-from unittest import TestCase
-
-from acgtrie import ACGTrie
-
-
 def get_rows(trie):
     '''
     The Trie class has a rows property with a generator compatible
@@ -11,9 +6,11 @@ def get_rows(trie):
     return [row for row in trie.rows]
 
 
-class Tests(TestCase):
+class TrieBuildingMixin(object):
+    ACGTrie = None
+
     def test_blank_trie(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         rows = get_rows(trie)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0].count, 0)
@@ -24,7 +21,7 @@ class Tests(TestCase):
         self.assertEqual(rows[0].seq, '')
 
     def test_single_seq_adds_single_row(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_subsequence('ACG', 0, 3, 1)
         rows = get_rows(trie)
         self.assertEqual(len(rows), 2)
@@ -32,7 +29,7 @@ class Tests(TestCase):
         self.assertRowEqual(rows[1], 1, 0, 0, 0, 0, 'CG')
 
     def test_full_match_does_not_add_row(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_subsequence('ACG', 0, 3, 1)
         rows = get_rows(trie)
         self.assertEqual(len(rows), 2)
@@ -45,7 +42,7 @@ class Tests(TestCase):
         self.assertRowEqual(rows[1], 2, 0, 0, 0, 0, 'CG')
 
     def test_superseq_match_does_adds_row(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_subsequence('ACG', 0, 3, 1)
         rows = get_rows(trie)
         self.assertEqual(len(rows), 2)
@@ -59,7 +56,7 @@ class Tests(TestCase):
         self.assertRowEqual(rows[2], 1, 0, 0, 0, 0, '')
 
     def test_partial_seq_match_causes_split(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_subsequence('ACG', 0, 3, 1)
         rows = get_rows(trie)
         self.assertEqual(len(rows), 2)
@@ -73,7 +70,7 @@ class Tests(TestCase):
         self.assertRowEqual(rows[2], 1, 0, 0, 0, 0, '')
 
     def test_empty_partial_seq_match_causes_split(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_subsequence('ACG', 0, 3, 1)
         rows = get_rows(trie)
         self.assertEqual(len(rows), 2)
@@ -87,7 +84,7 @@ class Tests(TestCase):
         self.assertRowEqual(rows[2], 1, 0, 0, 0, 0, 'G')
 
     def test_sequence_adds_all_subsequences(self):
-        trie = ACGTrie()
+        trie = self.ACGTrie()
         trie.add_sequence('ACG', 1)
         self.assertEqual(trie.get_count('A'), 1)
         self.assertEqual(trie.get_count('C'), 1)
