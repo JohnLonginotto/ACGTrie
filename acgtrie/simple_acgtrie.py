@@ -6,8 +6,13 @@ memory, but can serve as a interesting starting point for
 trie construction.
 '''
 
+from .base_acgtrie import ACGTrieBase
+
 
 class Row(object):
+    '''
+    This row implementation is interface compatible with base_acgtrie's.
+    '''
     def __init__(self):
         self.count = 0
         self.warps = [0, 0, 0, 0]
@@ -43,36 +48,35 @@ class ScanResults(object):
         )
 
 
-class ACGTrie(object):
+class ACGTrie(ACGTrieBase):
     def __init__(self):
-        self.rows = [Row()]
+        self._rows = [Row()]
 
-    def add_sequence(self, seq, count):
-        end = len(seq)
-        for start in xrange(end):
-            self.add_subsequence(seq, start, end, count)
+    @property
+    def rows(self):
+        return self._rows
 
     def lookup(self, seq):
         results = self.scan(seq, 0, len(seq), 0)
         if results.matched:
-            return self.rows[results.row_idx]
+            return self._rows[results.row_idx]
         return None
 
     def add_subsequence(self, seq, start, end, count):
         results = self.scan(seq, start, end, count)
-        row = self.rows[results.row_idx]
+        row = self._rows[results.row_idx]
 
         if results.seq_match >= 0:
             # The sequence did not match exactly, split this row.
             seq_idx = results.seq_match
             sub = row.seq[seq_idx]
 
-            split_row_idx = len(self.rows)
+            split_row_idx = len(self._rows)
             split_row = Row()
             split_row.count = row.count
             split_row.warps = row.warps
             split_row.seq = row.seq[seq_idx+1:]
-            self.rows.append(split_row)
+            self._rows.append(split_row)
 
             row.seq = row.seq[:seq_idx]
             row.warps = [0, 0, 0, 0]
@@ -86,19 +90,19 @@ class ACGTrie(object):
             warp_idx = self.ascii_to_warp_idx(seq[start])
 
             # Wire in the warp to a new row.
-            row_idx = len(self.rows)
+            row_idx = len(self._rows)
             row.warps[warp_idx] = row_idx
 
             # Create a new row with the remaining seq.
             row = Row()
-            self.rows.append(row)
+            self._rows.append(row)
             row.count += count
             row.seq = seq[start+1:end]
 
     def scan(self, seq, start, end, add_count):
         row_idx = 0
         while True:
-            row = self.rows[row_idx]
+            row = self._rows[row_idx]
 
             for sub_idx, sub in enumerate(row.seq):
                 if start >= end:
@@ -128,14 +132,3 @@ class ACGTrie(object):
             return 2
         else:
             return 3
-
-    def __repr__(self):
-        fmt = '{:>5} {:>5} {:>5} {:>5} {:>5} {:>5} {:<5}'
-        output = [fmt.format('row', 'A', 'C', 'T', 'G', '#', 'Seq')]
-        for idx, row in enumerate(self.rows):
-            output.append(fmt.format(
-                idx,
-                row.a, row.c, row.t, row.g,
-                row.count, row.seq,
-            ))
-        return '\n'.join(output)

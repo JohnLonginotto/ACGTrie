@@ -89,13 +89,13 @@ class Tests(TestCase):
     def test_sequence_adds_all_subsequences(self):
         trie = ACGTrie()
         trie.add_sequence('ACG', 1)
-        self.assertEqual(trie.lookup('A').count, 1)
-        self.assertEqual(trie.lookup('C').count, 1)
-        self.assertEqual(trie.lookup('G').count, 1)
-        self.assertEqual(trie.lookup('AC').count, 1)
-        self.assertEqual(trie.lookup('CG').count, 1)
+        self.assertEqual(trie.get_count('A'), 1)
+        self.assertEqual(trie.get_count('C'), 1)
+        self.assertEqual(trie.get_count('G'), 1)
+        self.assertEqual(trie.get_count('AC'), 1)
+        self.assertEqual(trie.get_count('CG'), 1)
 
-        self.assertIsNone(trie.lookup('AG'))
+        self.assertEqual(trie.get_count('AG'), 0)
 
     def assertRowEqual(self, row, count, a, c, g, t, seq):
         self.assertEqual(row.count, count)
