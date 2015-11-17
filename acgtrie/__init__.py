@@ -13,6 +13,15 @@ from os import environ
 options = dict()
 
 
+# Load CPPACGTrie.
+try:
+    from .cpp_acgtrie import CPPACGTrie
+except OSError:
+    pass
+else:
+    options['CPPACGTrie'] = CPPACGTrie
+
+
 # Load CythonACGTrie.
 try:
     import pyximport
@@ -30,6 +39,7 @@ options['SimpleACGTrie'] = SimpleACGTrie
 
 
 priorities = [
+    'CPPACGTrie',
     'CythonACGTrie',
     'SimpleACGTrie',
 ]

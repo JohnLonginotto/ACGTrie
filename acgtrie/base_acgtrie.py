@@ -13,12 +13,12 @@ class Row(object):
     such Rows are typically a view over low level data.
     '''
     def __init__(self, count=0, a=0, c=0, g=0, t=0, seq=''):
-        self.count = 0
+        self.count = count
         self.a = a
         self.c = c
         self.g = g
         self.t = t
-        self.seq = ''
+        self.seq = seq
 
 
 class ACGTrieBase(object):
