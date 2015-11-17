@@ -6,7 +6,6 @@ Basically, we use it to turn a string of DNA (of any length) into a number, whic
 Although ACGTrie wouldn't be possible without the up2bit format, in truth the implimentation specifics are not something most 
 Biologists will care about, so it is probably safe to skip over it entirely ;)
 
-If you wish to keep reading, *great*! But brace yourself... winter is coming and you are about to go over the wall :T
 
 As you may have seen in the *OUTPUT_FORMAT* docs, we have a column called **SEQ** which contains DNA like "ACGT".
 In the actual table that is saved on your hard drive, we can't store little As, Cs, Ts, and Gs, because computers only 
