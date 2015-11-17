@@ -18,7 +18,7 @@ A smart pre-processor can significantly speed up the time taken to make the outp
 
 The rest of this document focuses on the known optimizations that preprocessors can do to speed things up, which is something 
 you will want to read about if you intend on making your own pre-processors. They broadly fall into 7 catagories:
-
+ 
 - run length encoding,
 - fragmentation,
 - sorting
