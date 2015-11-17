@@ -21,6 +21,37 @@ inline int letter_to_code(char c) {
 }
 
 
+static const char LogTable256[256] =
+{
+#define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
+    -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+    LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
+    LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
+#undef LT
+};
+
+
+int highest_bit(uint64_t v) {
+    uint64_t t;
+    int add = 0;
+
+    if ((t = v >> 32)) {
+        add = 32;
+        v = t;
+    }
+    if ((t = v >> 16)) {
+        add += 16;
+        v = t;
+    }
+    if ((t = v >> 8)) {
+        add += 8;
+        v = t;
+    }
+
+    return add + LogTable256[v];
+}
+
+
 struct Up2Bit {
     uint64_t value;
 
@@ -42,22 +73,13 @@ struct Up2Bit {
         }
     }
 
-    int start_shift() {
-        int shift = 62;
-
-        while (value >> shift == 0) {
-            shift -= 2;
-            if (shift < 0) {
-                return -2;
-            }
-        }
-
-        return shift - 2;
+    inline int start_shift() {
+        return highest_bit(value) - 2;
     }
 
     string to_string() {
-        int shift = start_shift();
         string result;
+        int shift = start_shift();
         while (shift >= 0) {
             int bits = (value >> shift) & 0x3;
             result += "ACGT"[bits];
@@ -104,7 +126,7 @@ struct CPPACGTrie {
     deque<Row> rows;
 
     CPPACGTrie() {
-        rows.emplace_back();
+        rows.push_back(Row());
     }
 
     void add_sequence(const char *seq, int start, int end, int count) {
@@ -169,15 +191,17 @@ struct CPPACGTrie {
         int row_idx = 0;
         for (;;) {
             Row &row = rows[row_idx];
-            string row_seq = row.seq.to_string();
+            if (row.seq.value != 1) {
+                string row_seq = row.seq.to_string();
 
-            for (int i=0, j=row_seq.size(); i<j; ++i) {
-                if (start >= end) {
-                    return {true, row_idx, start, i};
-                } else if (row_seq[i] == seq[start]) {
-                    ++start;
-                } else {
-                    return {false, row_idx, start, i};
+                for (int i=0, j=row_seq.size(); i<j; ++i) {
+                    if (start >= end) {
+                        return {true, row_idx, start, i};
+                    } else if (row_seq[i] == seq[start]) {
+                        ++start;
+                    } else {
+                        return {false, row_idx, start, i};
+                    }
                 }
             }
 
