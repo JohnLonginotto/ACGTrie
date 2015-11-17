@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <deque>
 #include <stdint.h>
 #include <string>
@@ -171,8 +172,11 @@ struct CPPACGTrie {
         row->count += count;
 
         start = results.start;
-        if (start < end) {
+        while (start < end) {
             // Add a new row for the remaining sequence.
+            // If the sequence is more than 31 letters long
+            // it is split into more rows, as that is the capacity
+            // of a single Up2Bit field.
             warp_idx = letter_to_code(seq[start]);
 
             // Wire in the warp to a new row.
@@ -182,8 +186,11 @@ struct CPPACGTrie {
             // Create a new row with the remaining seq.
             Row new_row;
             new_row.count = count;
-            new_row.seq = Up2Bit(seq, start+1, end);
+            new_row.seq = Up2Bit(seq, start+1, min(start+1+31, end));
             rows.push_back(new_row);
+
+            row = &rows[row_idx];
+            start += 32;
         }
     }
 
