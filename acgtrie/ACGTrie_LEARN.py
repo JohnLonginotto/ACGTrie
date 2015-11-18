@@ -235,8 +235,16 @@ def growTrie():
         ctypes.resize(COUNT, ctypes.sizeof(COUNT._type_)*newSize)
         COUNT = (A._type_*newSize).from_address(ctypes.addressof(COUNT))
     elif arrayKind == 'cffi':
-        print 'I dont know how to resize a cffi array! :('
-        exit()
+        try:
+            tempA     = A;     A     = ffi.new("uint32_t[]", len(A)+10000000);     ffi.memmove(A,tempA,len(tempA))
+            tempC     = C;     C     = ffi.new("uint32_t[]", len(C)+10000000);     ffi.memmove(C,tempC,len(tempC))
+            tempG     = G;     G     = ffi.new("uint32_t[]", len(G)+10000000);     ffi.memmove(G,tempG,len(tempG))
+            tempT     = T;     T     = ffi.new("uint32_t[]", len(T)+10000000);     ffi.memmove(T,tempT,len(tempT))
+            tempCOUNT = COUNT; COUNT = ffi.new("uint32_t[]", len(COUNT)+10000000); ffi.memmove(COUNT,tempCOUNT,len(tempCOUNT))
+            tempSEQ   = SEQ;   SEQ   = ffi.new("int64_t[]", len(SEQ)+10000000);    ffi.memmove(SEQ,tempSEQ,len(tempSEQ))
+        except AttributeError:
+            print 'ERROR! Your version of python does not fully support cffi! Please upgrade, or set the intial amount of RAM to something larger.'
+            exit()
     getRAM()
 
 class fileStats:
@@ -399,8 +407,14 @@ elif arrayKind == 'ctypes':
     fileCOUNT.write(fin32.from_address(ctypes.addressof(COUNT)))
     fileSEQ.write(fin64.from_address(ctypes.addressof(SEQ)))
 elif arrayKind == 'cffi':
-    print 'I dont know how to resize a CFFI array (yet)'
-    exit()
+    fin32 = nextRowToAdd * (ffi.sizeof(A)/len(A))
+    fin64 = nextRowToAdd * (ffi.sizeof(SEQ)/len(A))
+    fileA.write(ffi.buffer(A,fin32))
+    fileC.write(ffi.buffer(C,fin32))
+    fileG.write(ffi.buffer(G,fin32))
+    fileT.write(ffi.buffer(T,fin32))
+    fileCOUNT.write(ffi.buffer(COUNT,fin32))
+    fileSEQ.write(ffi.buffer(SEQ,fin64))
 
 fileA.close()
 fileC.close()
@@ -410,33 +424,14 @@ fileCOUNT.close()
 fileSEQ.close()
 
 '''
-
 rstrip vs [:-1] ?
-
-pip update numpy?
-
-Depth column? See how much time it adds.
-Why RAM used so much more than what gets written to disk?
-numpy.array instead of uint32?
-(pytables/array.array?)
---interpreter /path/to/pypy/or/cython   (must have hts-python not pysam. Maybe would work with samtools only.)
-
 OVERFLOWS
-
-Speed test against other Trie-making programs. Perhaps have a speed and RAM competition.
-Consider using 5x array.array - one for each column - and pypy for fast access.
-Also pytables instead of numpy?
-Get addRow to work.
-'''
-
-
-'''
 Future ideas:
 DEPTH array? Has the depth of the row/node in the trie. uint8 as depth unlikely to be bigger than 256.
 BACK array ? Has the row number for the parent row. uint32.
 Any way to compress this data but still randomly-access it's contents? Numpy's memmap only works on uncompressed. Maybe use HD5F? Overhead? (No pytables support in pypy)
 Function just like addNodeWalk but only +1s to the last node, not the intermediate nodes.
 Sort table. I think compression will work a lot better if the table is sorted by SEQ or something. Branches of trei dont need sorting, just array whilst correcting A/C/G/T/BACK pipes.
-Compress table. The table is actually not at optimal size after being made. Rows 'deeper' in the trie can be merged to nodes higher up which now have space because they were once.
-Delete rows. Delete rows from the table with a count lower than X. Delete noise and save a lot of space? Pipes need to be maintained.
+Compact table. The table is actually not at optimal size after being made. Rows 'deeper' in the trie can be merged to nodes higher up which now have space because they were once.
+Delete rows. Delete rows from the table with a count lower than X or a depth higher than X. Pipes need to be maintained.
 '''
