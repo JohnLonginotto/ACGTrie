@@ -22,17 +22,6 @@ else:
     options['CPPACGTrie'] = CPPACGTrie
 
 
-# Load CythonACGTrie.
-try:
-    import pyximport
-    pyximport.install()
-except:
-    pass
-else:
-    from .cython_acgtrie import CythonACGTrie
-    options['CythonACGTrie'] = CythonACGTrie
-
-
 # Load SimpleACGTrie.
 from simple_acgtrie import SimpleACGTrie
 options['SimpleACGTrie'] = SimpleACGTrie
@@ -40,7 +29,6 @@ options['SimpleACGTrie'] = SimpleACGTrie
 
 priorities = [
     'CPPACGTrie',
-    'CythonACGTrie',
     'SimpleACGTrie',
 ]
 
