@@ -16,14 +16,14 @@ options = dict()
 # Load CPPACGTrie.
 try:
     from .cpp_acgtrie import CPPACGTrie
-except OSError:
+except ImportError:
     pass
 else:
     options['CPPACGTrie'] = CPPACGTrie
 
 
 # Load SimpleACGTrie.
-from simple_acgtrie import SimpleACGTrie
+from .simple_acgtrie import SimpleACGTrie
 options['SimpleACGTrie'] = SimpleACGTrie
 
 

@@ -10,11 +10,10 @@ class TrieBuildingTests(TrieBuildingMixin, TestCase):
     seq_limit = 29
 
     def test_seq_overflows_to_next_row(self):
-        seq = 'ACGT' * (self.seq_limit / 3)
+        seq = 'ACGT' * (self.seq_limit // 3)
         trie = self.ACGTrie()
         trie.add_subsequence(seq, 0, len(seq), 1)
         rows = get_rows(trie)
-        print rows
         self.assertEqual(len(rows), 3)
         self.assertRowEqual(rows[0], 1, 1, 0, 0, 0, '')
 

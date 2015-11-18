@@ -102,6 +102,19 @@ class SimpleACGTrie(ACGTrieBase):
             row.count += count
             row.seq = seq[start+1:end]
 
+    def clear(self):
+        del self._rows[:]
+
+    def add_row(self, row):
+        internal_row = Row()
+        internal_row.count = row.count
+        internal_row.warps[0] = row.a
+        internal_row.warps[1] = row.c
+        internal_row.warps[2] = row.g
+        internal_row.warps[3] = row.t
+        internal_row.seq = row.seq
+        self._rows.append(internal_row)
+
     def scan(self, seq, start, end, add_count):
         row_idx = 0
         while True:

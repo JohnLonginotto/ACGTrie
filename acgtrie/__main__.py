@@ -1,6 +1,5 @@
 import argparse
 import csv
-import struct
 import sys
 import time
 
@@ -16,23 +15,6 @@ def human_mem(bytes):
     if bytes > 1000:
         return '{:.2f}KB'.format(bytes / 1000.0)
     return '{:s}B'.format(bytes)
-
-
-def up_to_29(seq):
-    shift = 64 - 6
-    result = len(seq) << shift
-    for letter in seq:
-        if letter == 'A':
-            bits = 0
-        elif letter == 'C':
-            bits = 1
-        elif letter == 'G':
-            bits = 2
-        else:
-            bits = 3
-        shift -= 2
-        result |= bits << shift
-    return result
 
 
 def main():
@@ -61,23 +43,14 @@ def main():
         pass
     else:
         print('Allocated {}.'.format(human_mem(allocated)))
-        print('{} bytes per row.'.format(allocated / len(trie)))
+        print('{} bytes per row.'.format(allocated // len(trie)))
 
     print('Trie built in {}s.'.format(time.time() - start))
 
     if args.out:
         start = time.time()
-        fmt = struct.Struct('=i4iq')
         with open(args.out, 'wb') as stream:
-            for row in trie.rows:
-                stream.write(fmt.pack(
-                    row.count,
-                    row.a,
-                    row.c,
-                    row.g,
-                    row.t,
-                    up_to_29(row.seq),
-                ))
+            trie.save(stream)
         print('Output {} written in {}s.'.format(
             repr(args.out), time.time() - start,
         ))

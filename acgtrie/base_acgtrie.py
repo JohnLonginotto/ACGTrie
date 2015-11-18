@@ -4,6 +4,9 @@ implementations as well as some utility methods.
 '''
 
 
+from struct import Struct
+
+
 class Row(object):
     '''
     A row interface exposing the high level details
@@ -41,7 +44,7 @@ class ACGTrieBase(object):
         Adds a sequence and all its subsequences to the trie.
         '''
         end = len(seq)
-        for start in xrange(end):
+        for start in range(end):
             self.add_subsequence(seq, start, end, count)
 
     def lookup(self, seq):
@@ -82,3 +85,60 @@ class ACGTrieBase(object):
 
     def __repr__(self):
         return self.to_table(10)
+
+    row_struct = Struct('=i4iq')
+
+    def save(self, stream):
+        for row in self.rows:
+            stream.write(self.row_struct.pack(
+                row.count,
+                row.a,
+                row.c,
+                row.g,
+                row.t,
+                seq_to_up_to_29(row.seq),
+            ))
+
+    def load(self, stream):
+        self.clear()
+
+        while True:
+            data = stream.read(self.row_struct.size)
+            if len(data) != self.row_struct.size:
+                break
+
+            count, a, c, g, t, seq = self.row_struct.unpack(data)
+            self.add_row(Row(count, a, c, g, t, up_to_29_to_seq(seq)))
+
+    def clear(self):
+        raise NotImplementedError()
+
+    def add_row(self, row):
+        raise NotImplementedError()
+
+
+def seq_to_up_to_29(seq):
+    shift = 64 - 6
+    result = len(seq) << shift
+    for letter in seq:
+        if letter == 'A':
+            bits = 0
+        elif letter == 'C':
+            bits = 1
+        elif letter == 'G':
+            bits = 2
+        else:
+            bits = 3
+        shift -= 2
+        result |= bits << shift
+    return result
+
+
+def up_to_29_to_seq(up_to):
+    seq = ''
+    l = up_to >> (64 - 6)
+    shift = 64 - 8
+    for i in range(l):
+        seq += 'ACGT'[(up_to >> shift) & 3]
+        shift -= 2
+    return seq
