@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ## Valid options are 'cffi', 'ctypes' and 'numpy'
-arrayKind = 'numpy'
+arrayKind = 'cffi'
 if arrayKind == 'cffi': import cffi      ; print '   [ Using cffi ]'
 if arrayKind == 'numpy': import numpy    ; print '   [ Using numpy ]'
 if arrayKind == 'ctypes': import ctypes  ; print '   [ Using ctypes ]'
@@ -35,7 +35,6 @@ if args.output == None: print '''
     or FASTA or whatever), or, if we haven't made one for your data
     format yet, write one and we will put it up on the site for all :)
 '''; exit()
-
 
 ###################
 ## Trie creation ##
@@ -76,30 +75,20 @@ def copyRow(row,nextRowToAdd,up2bit,x):
     COUNT[nextRowToAdd] = COUNT[row]
     SEQ[nextRowToAdd] = list_up2bit(up2bit[x+1:len(up2bit)])
 
-## When then edit the original row to have either 1 or 2 warps to pipes pointing to the 1 or 2 new rows:
-def setA (row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =    val,0,0,0    ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setC (row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =    0,val,0,0    ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setT (row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =    0,0,val,0    ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setG (row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =    0,0,0,val    ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setAC(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val,val+1,0,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setCA(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val+1,val,0,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setCG(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,val,0,val+1  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setGC(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,val+1,0,val  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setAG(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val,0,0,val+1  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setGA(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val+1,0,0,val  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setCT(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,val,val+1,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setTC(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,val+1,val,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setAT(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val,0,val+1,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setTA(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  val+1,0,val,0  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setTG(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,0,val,val+1  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-def setGT(row,val,count,up2bit,x): A[row],C[row],T[row],G[row],COUNT[row],SEQ[row] =  0,0,val+1,val  ,COUNT[row]+count,list_up2bit(up2bit[:x]); global nextRowToAdd; nextRowToAdd += 1
-onePipe  = ( setA, setC, setT, setG )
-twoPipes = (
-    (None,setAC,setAT,setAG),
-    (setCA,None,setCT,setCG),
-    (setTA,setTC,None,setTG),
-    (setGA,setGC,setGT,None)
-)
+## We then edit the original row to have either 1 or 2 warps to pipes pointing to the 1 or 2 new rows.
+## The COUNT is increased of course, and the SEQ becomes whatever came before the mismatch.
+def freshRow(firstPipe,secondPipe,row,count,DNAJ,x):
+    global nextRowToAdd
+    A[row] = 0
+    C[row] = 0
+    T[row] = 0
+    G[row] = 0
+    COUNT[row] += count
+    SEQ[row] =  list_up2bit(DNAJ[:x])
+    (A,C,T,G)[firstPipe][row] = nextRowToAdd       ## first pipe
+    nextRowToAdd += 1
+    if secondPipe != None:
+        (A,C,T,G)[secondPipe][row] = nextRowToAdd  ## second pipe
 
 ## And finally, if needed, make a second row (DNA unique to the incoming fragment):
 def secondRow(count,seq,x):
@@ -146,11 +135,11 @@ def addRowWalk(DNA,count):
             if len(seq) < len(up2bit):                                                  ## Type 1. DNA in the row is longer than DNA in the fragment. This gives us two possibilities:
                 if up2bit[:len(seq)] == seq:                                                              ## 1) The Fragment's DNA, although shorter than the row's DNA, matches the row.
                     copyRow(row,nextRowToAdd,up2bit,len(seq))
-                    onePipe[up2bit[len(seq)]](row,nextRowToAdd,count,up2bit,len(seq))
+                    freshRow(up2bit[len(seq)],None,row,count,up2bit,len(seq))
                 else:                                                                                   ## 2) The Fragment's DNA and the row's DNA do NOT match. So now we have to make 2 new rows...
                     x = firstNonMatching(seq,up2bit)
                     copyRow(row,nextRowToAdd,up2bit,x)
-                    twoPipes[up2bit[x]][seq[x]](row,nextRowToAdd,count,up2bit,x)
+                    freshRow(up2bit[x],seq[x],row,count,up2bit,x)
                     secondRow(count,seq,x)
             elif len(seq) > len(up2bit):                                                ## Type 2. The DNA in the fragment is longer than DNA in the row. This gives us again two possibilities:
                 if seq[:len(up2bit)] == up2bit:                                                         ## 1) The row's DNA, although shorter than the fragments's DNA, matches the fragment.
@@ -165,7 +154,7 @@ def addRowWalk(DNA,count):
                 else:                                                                                   ## 2) The rows's DNA and the fragments's DNA do NOT match. So now we have to make 2 new rows...
                     x = firstNonMatching(up2bit,seq)
                     copyRow(row,nextRowToAdd,up2bit,x)
-                    twoPipes[up2bit[x]][seq[x]](row,nextRowToAdd,count,up2bit,x)
+                    freshRow(up2bit[x],seq[x],row,count,up2bit,x)
                     restOfSeq(seq[x:],row,count)
             else:                                                                   ## Type 3. The DNA in the fragment is the same length as the DNA in the row. This gives us again two possibilities:
                 if up2bit == seq:
@@ -173,7 +162,7 @@ def addRowWalk(DNA,count):
                 else:
                     x = firstNonMatching(seq,up2bit)
                     copyRow(row,nextRowToAdd,up2bit,x)
-                    twoPipes[up2bit[x]][seq[x]](row,nextRowToAdd,count,up2bit,x)
+                    freshRow(up2bit[x],seq[x],row,count,up2bit,x)
                     secondRow(count,seq,x)
         return
 
@@ -256,7 +245,7 @@ class fileStats:
         self.linesRead += count
         self.fragmentAvg += len(DNA)*count
     def result(self):
-        return (self.linesRead,self.fragmentAvg/self.linesRead,time.time()-self.start)
+        return (self.linesRead,int(self.fragmentAvg/self.linesRead),time.time()-self.start)
 
 ######################
 ## Create the table ##
@@ -311,11 +300,18 @@ getRAM()
 ##                                                                                                      ##
 ##########################################################################################################
 
+startTime = str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
 # Read first row to see if DNA comes with counts. Create appropriate stdin generator.
 firstFragment = sys.stdin.readline().strip().split(',')
-if   len(firstFragment) == 1: stdin = zip(sys.stdin, itertools.repeat(1)) ; firstFragment.append(1)
-elif len(firstFragment) == 2: stdin = csv.reader(sys.stdin, delimiter=',') ; firstFragment[1] = int(firstFragment[1])
-else: print 'ERROR: I do not understand this kind of stdin format :U'; exit()
+if   len(firstFragment) == 1:
+    stdin = ((line.rstrip(),1) for line in sys.stdin)
+    firstFragment.append(1)
+elif len(firstFragment) == 2:
+    stdin = ( (DNA,int(count)) for DNA,count in csv.reader(sys.stdin, delimiter=',') )
+    firstFragment[1] = int(firstFragment[1])
+else:
+    print 'ERROR: I do not understand this kind of stdin format :U'; exit()
 
 #What kind of adding function to use?
 if args.walk or args.fragment: add = addRowWalk
@@ -327,7 +323,6 @@ stats = fileStats(firstFragment[0],firstFragment[1])
 if args.fragment:
     subfragment(firstFragment[0],firstFragment[1])
     for DNA,count in stdin:
-        DNA,count = DNA.rstrip(),int(count)
         stats.add(DNA,count)
         subfragment(DNA,count)
         if linesRead % 10000 == 0: emptyCache(add,nextRowToAdd)
@@ -337,7 +332,6 @@ if args.fragment:
 else:
     add(firstFragment[0],firstFragment[1])
     for DNA,count in stdin:
-        DNA,count = DNA.rstrip(),int(count)
         stats.add(DNA,count)
         add(DNA,count)
         if nextRowToAdd + 100 > len(A): growTrie()
@@ -349,46 +343,56 @@ print 'Lines read: ', linesRead
 print 'Average fragment length: ', fragmentAvg
 print sum(A),sum(C),sum(T),sum(G),sum(COUNT),sum(SEQ)
 
-exit()
-
 ########################
 ## Write out the data ##
 ##########################################################################################################
 ##                                                                                                      ##
-## We make a JSON header for each file, because it's easy to read and easy to parse out. It contans all ##
-## the information we might want to remember about this ACGTrie run :)                                  ##
+## Like all ACGT software, it's very important that output files contain a JSON header with metadata    ##
+## about the analysis. Having said that, im not a huge fan of 6 files all with (almost) the same header ##
+## ... but it is much safer for ACGTrie to always add a header, rather than trust the preprocessors to  ##
+## do the right thing and make one. If preprocessors HAVE to parse it out to concat, they're likely to  ##
+## put it back in again properly too.                                                                   ##
 ##                                                                                                      ##
 ##########################################################################################################
 
-if False:
-    ## We're not doing this just yet.
-    header = 'HEADER_START\n'
-    headerInfo = {
-        #'structs': [(x,str(y[0])) for x,y in sorted(trie.dtype.fields.items(),key=lambda k: k[1])],     ## List of name/structs used in NumPy array. Readers of ACGTrie files should check this as might not always be standard.
-        'fragments': linesRead,                                                                         ## Total number of lines in the SAM/BAM file read
-        'fragmentAvgLen': int(fragmentAvg/linesRead),                                                   ## The average length of each fragment (not subfragment)
-        'rows': int(nextRowToAdd),                                                                      ## The number of rows in the ACGTrie table
-        'analysisTime': str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')),                     ## When the table was made.
-        'countOverflow': {},                                                                            ## ?
-        'warpOverflow': {}                                                                              ## ?
-    }
-    theJson = json.dumps(headerInfo,sort_keys=True, indent=4)       ## The header format here is exactly the
-    if theJson.count('\n') < 100: header += theJson                 ## same as all the header formats in all
-    else: header += json.dumps(headerInfo,sort_keys=True)           ## AC.GT projects. JSON data, typically
-    while header.count('\n') < 99: header += '\n'                   ## laid out nicely to be human-readable,
-    header += 'HEADER_END\n'                                        ## with HEADER_END on the 100th line so
-                                                                    ## "head -100 ./file" or "tail +101 ./file"
-    fileA     = open(args.output + '.A', 'wb');     fileA.write(header)
-    fileC     = open(args.output + '.C', 'wb');     fileC.write(header)
-    fileG     = open(args.output + '.G', 'wb');     fileG.write(header)
-    fileT     = open(args.output + '.T', 'wb');     fileT.write(header)
-    fileCOUNT = open(args.output + '.COUNT', 'wb'); fileCOUNT.write(header)
-    fileSEQ   = open(args.output + '.SEQ', 'wb');   fileSEQ.write(header)
+header32 = 'HEADER_START\n';
+header64 = 'HEADER_START\n';
+uint32_head = {
+    'structs': 'uint32',
+    'fragments': linesRead,
+    'fragmentAvgLen': fragmentAvg,
+    'rows': nextRowToAdd,
+    'analysisTime': startTime,
+    'analysisDuration': duration,
+    'countOverflow': countOverflow,
+    'warpOverflow': warpOverflow
+}
+int64_head = dict(uint32); int64['structs'] = 'int64'
+uint32_json = json.dumps(uint32_head,sort_keys=True, indent=4)       ## The header format here is exactly the
+int64_json = json.dumps(int64_head,sort_keys=True, indent=4)       ## The header format here is exactly the
+if uint32_json.count('\n') < 100:
+    header32 += uint32_json                 ## same as all the header formats in all
+    header64 +=  int64_json                  ## same as all the header formats in all
+else: 
+    header32 += json.dumps(uint32_json,sort_keys=True)                 ## same as all the header formats in all
+    header64 += json.dumps( int64_json,sort_keys=True)                 ## same as all the header formats in all
+while header32.count('\n') < 99:
+    header32 += '\n'
+    header64 += '\n'
+header32 += 'HEADER_END\n'                                        ## with HEADER_END on the 100th line so
+header64 += 'HEADER_END\n'                                        ## "head -100 ./file" or "tail +101 ./file"
+fileA     = open(args.output + '.A', 'wb');     fileA.write(header)
+fileC     = open(args.output + '.C', 'wb');     fileC.write(header)
+fileG     = open(args.output + '.G', 'wb');     fileG.write(header)
+fileT     = open(args.output + '.T', 'wb');     fileT.write(header)
+fileCOUNT = open(args.output + '.COUNT', 'wb'); fileCOUNT.write(header)
+fileSEQ   = open(args.output + '.SEQ', 'wb');   fileSEQ.write(header)
 
 if sys.byteorder == 'big':
     print '   [ Flipping eggs. ]'; ## Little Endians 4 lyfe yo.
     if arrayKind == 'numpy': A.byteswap(True);C.byteswap(True);G.byteswap(True);T.byteswap(True);COUNT.byteswap(True);SEQ.byteswap(True)
-    else: print 'I dont know how to convert big endian to little endian for cffi/ctypes (yet)'
+    else:
+        print 'Support for byteswap in cffi is comming soon! Until then, youll have to swap manually in numpy on loading the data on another machine.'
 
 if arrayKind == 'numpy':
     fileA.write(A[:nextRowToAdd])
