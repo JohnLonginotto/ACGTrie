@@ -52,6 +52,9 @@ class SimpleACGTrie(ACGTrieBase):
     def __init__(self):
         self._rows = [Row()]
 
+    def __len__(self):
+        return len(self._rows)
+
     @property
     def rows(self):
         return self._rows

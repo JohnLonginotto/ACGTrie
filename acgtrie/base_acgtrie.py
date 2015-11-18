@@ -22,6 +22,12 @@ class Row(object):
 
 
 class ACGTrieBase(object):
+    def __len__(self):
+        '''
+        Returns the number of rows in the trie.
+        '''
+        raise NotImplementedError()
+
     @property
     def rows(self):
         '''

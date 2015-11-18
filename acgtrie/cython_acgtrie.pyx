@@ -197,6 +197,9 @@ cdef class LLCythonACGTrie:
         ll_row_clear(&self._rows[0])
         self._row_count = 1
 
+    def __len__(self):
+        return self._row_count
+
     @property
     def rows(self):
         cdef int i

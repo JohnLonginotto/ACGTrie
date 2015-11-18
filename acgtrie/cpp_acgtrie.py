@@ -46,6 +46,9 @@ class CPPACGTrie(ACGTrieBase):
     def __del__(self):
         dll.cpp_acg_trie_delete(self._trie)
 
+    def __len__(self):
+        return dll.cpp_acg_trie_get_row_count(self._trie)
+
     @property
     def rows(self):
         i = 0
@@ -98,6 +101,3 @@ class CPPACGTrie(ACGTrieBase):
 
     def allocated(self):
         return dll.cpp_acg_trie_allocated(self._trie)
-
-    def __len__(self):
-        return dll.cpp_acg_trie_get_row_count(self._trie)
