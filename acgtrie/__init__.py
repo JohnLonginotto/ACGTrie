@@ -1,7 +1,7 @@
 '''
 This module exports one of the ACGTrie implementations.
 
-There are a few different implementations to chose from, by default
+There are a few different implementations to choose from, by default
 the one considered fastest is chosen, but this can be overridden using
 the ACGTRIE environment variable.
 '''

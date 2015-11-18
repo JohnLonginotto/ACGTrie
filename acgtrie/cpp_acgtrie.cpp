@@ -53,35 +53,49 @@ int highest_bit(uint64_t v) {
 }
 
 
-struct Up2Bit {
+struct UpTo29 {
+    // This struct can represent up to 29 letters in a 64bit field.
+    // The first (top) 6 bits give the count of letters.
+    // The next 58 bits are the letters themselves, left aligned, two
+    // bits per letter for A C G and T.
+    // Bits to the right of the letters are always set to 0.
+    //
+    // e.g. An empty sequence is length 0b000000 followed by 0 letters and
+    // 58 bits of 0. This is 0.
+    // The sequence C is length 0b000001 followed by 1 letter 0b01 and 56
+    // bits of 0. This is
+    // 0b0000010100000000000000000000000000000000000000000000000000000000
+    //
+    // Because only 5 bits are required for the length (0-29) the top bit
+    // is always 0 and could be used for something else with some careful
+    // masking.
     uint64_t value;
 
-    Up2Bit() {
-        value = 1;
+    UpTo29() {
+        value = 0;
     }
 
-    Up2Bit(const char *seq, int start, int end) {
-        value = 1;
+    UpTo29(const char *seq, int start, int end) {
+        value = end - start;
+        value <<= (64 - 6);
 
-        int bits;
+        int shift = 64 - 8;
+        uint64_t bits;
         char c;
 
         while (start < end) {
             c = seq[start];
             bits = letter_to_code(c);
-            value = (value << 2) | bits;
+            value |= bits << shift;
             ++start;
+            shift -= 2;
         }
-    }
-
-    inline int start_shift() {
-        return highest_bit(value) - 2;
     }
 
     string to_string() {
         string result;
-        int shift = start_shift();
-        while (shift >= 0) {
+        int shift = 64 - 8;
+        for (int i=0, l=len(); i<l; ++i) {
             int bits = (value >> shift) & 0x3;
             result += "ACGT"[bits];
             shift -= 2;
@@ -89,8 +103,34 @@ struct Up2Bit {
         return result;
     }
 
+    UpTo29 subseq(int start, int end) {
+        UpTo29 result;
+        uint64_t l = end-start;
+        uint64_t data = value;
+        // Shift data to the right to lose the tail.
+        data >>= (29 - end) * 2;
+        // Shift data to the left to lose the head.
+        data <<= 64 - (l * 2);
+
+        result.value = l << (64 - 6);
+        result.value |= data >> 6;
+
+        return result;
+    }
+
+    int bits(int idx) {
+        int shift = 64 - 8 - (idx * 2);
+        return (value >> shift) & 0x3;
+    }
+
+    char operator[](int idx) {
+        int shift = 64 - 8 - (idx<<1);
+        int bits = (value >> shift) & 0x3;
+        return "ACGT"[bits];
+    }
+
     int len() {
-        return (start_shift() >> 1) + 1;
+        return value >> (64 - 6);
     }
 };
 
@@ -98,19 +138,24 @@ struct Up2Bit {
 struct Row {
     uint32_t count;
     uint32_t warps[4];
-    Up2Bit seq;
+    UpTo29 seq;
 
     Row() {
-        clear();
-    }
-
-    void clear() {
         count = 0;
         warps[0] = 0;
         warps[1] = 0;
         warps[2] = 0;
         warps[3] = 0;
-        seq = Up2Bit();
+        seq = UpTo29();
+    }
+
+    Row(const Row &other) {
+        count = other.count;
+        warps[0] = other.warps[0];
+        warps[1] = other.warps[1];
+        warps[2] = other.warps[2];
+        warps[3] = other.warps[3];
+        seq = other.seq;
     }
 };
 
@@ -140,33 +185,25 @@ struct CPPACGTrie {
         ScanResults results = scan(seq, start, end, count);
         Row *row, split_row;
         int seq_idx, row_idx, split_row_idx, warp_idx;
-        string row_seq;
-        char sub;
 
         row = &rows[results.row_idx];
 
         if (results.seq_match >= 0) {
             // The sequence did not match exactly, split this row.
             seq_idx = results.seq_match;
-            row_seq = row->seq.to_string();
-            sub = row_seq[seq_idx];
+            warp_idx = row->seq.bits(seq_idx);
 
             split_row_idx = rows.size();
-            split_row = Row();
-            split_row.count = row->count;
-            split_row.warps[0] = row->warps[0];
-            split_row.warps[1] = row->warps[1];
-            split_row.warps[2] = row->warps[2];
-            split_row.warps[3] = row->warps[3];
-            split_row.seq = Up2Bit(row_seq.c_str(), seq_idx+1, row_seq.size());
+            split_row = Row(*row);
+            split_row.seq = row->seq.subseq(seq_idx+1, row->seq.len());
             rows.push_back(split_row);
 
-            row->seq = Up2Bit(row_seq.c_str(), 0, seq_idx);
+            row->seq = row->seq.subseq(0, seq_idx);
             row->warps[0] = 0;
             row->warps[1] = 0;
             row->warps[2] = 0;
             row->warps[3] = 0;
-            row->warps[letter_to_code(sub)] = split_row_idx;
+            row->warps[warp_idx] = split_row_idx;
         }
 
         row->count += count;
@@ -174,9 +211,9 @@ struct CPPACGTrie {
         start = results.start;
         while (start < end) {
             // Add a new row for the remaining sequence.
-            // If the sequence is more than 31 letters long
+            // If the sequence is more than 29 letters long
             // it is split into more rows, as that is the capacity
-            // of a single Up2Bit field.
+            // of a single UpTo29 field.
             warp_idx = letter_to_code(seq[start]);
 
             // Wire in the warp to a new row.
@@ -186,11 +223,11 @@ struct CPPACGTrie {
             // Create a new row with the remaining seq.
             Row new_row;
             new_row.count = count;
-            new_row.seq = Up2Bit(seq, start+1, min(start+1+31, end));
+            new_row.seq = UpTo29(seq, start+1, min(start+1+29, end));
             rows.push_back(new_row);
 
             row = &rows[row_idx];
-            start += 32;
+            start += 30;
         }
     }
 
@@ -198,35 +235,48 @@ struct CPPACGTrie {
         int row_idx = 0;
         for (;;) {
             Row &row = rows[row_idx];
-            if (row.seq.value != 1) {
-                string row_seq = row.seq.to_string();
+            int l = row.seq.len();
 
-                for (int i=0, j=row_seq.size(); i<j; ++i) {
-                    if (start >= end) {
-                        return {true, row_idx, start, i};
-                    } else if (row_seq[i] == seq[start]) {
-                        ++start;
-                    } else {
-                        return {false, row_idx, start, i};
-                    }
+            // Consume characters from this row's seq.
+            for (int i=0; i<l; ++i) {
+                if (start >= end) {
+                    // The scan matched, but was not a whole row match.
+                    // The row's seq goes on to define a longer seq.
+                    // For insertion this will require a split.
+                    return {true, row_idx, start, i};
+                } else if (row.seq[i] == seq[start]) {
+                    // Still matching.
+                    ++start;
+                } else {
+                    // Match failed, there is no such seq in the trie.
+                    // The returned details are enough to split and
+                    // continue.
+                    return {false, row_idx, start, i};
                 }
             }
 
             if (start >= end) {
+                // The seq has been matched exactly.
                 return {true, row_idx, start, -1};
             }
 
             int warp_idx = letter_to_code(seq[start]);
             int new_row_idx = row.warps[warp_idx];
             if (new_row_idx == 0) {
+                // The seq is not in the trie, a new warp would be
+                // required to add it.
                 return {false, row_idx, start, -1};
             }
+
+            // Since insertion needs to add the count to every visited
+            // row in the trie the count is added to this row before moving
+            // on.
             row.count += add_count;
+
+            // Continue with the next warp.
             ++start;
             row_idx = new_row_idx;
         }
-
-        return {};
     }
 };
 

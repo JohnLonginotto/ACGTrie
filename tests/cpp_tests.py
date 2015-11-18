@@ -7,7 +7,7 @@ from trie_building_mixin import TrieBuildingMixin, get_rows
 
 class TrieBuildingTests(TrieBuildingMixin, TestCase):
     ACGTrie = CPPACGTrie
-    seq_limit = 31
+    seq_limit = 29
 
     def test_seq_overflows_to_next_row(self):
         seq = 'ACGT' * (self.seq_limit / 3)
