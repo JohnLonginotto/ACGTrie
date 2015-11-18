@@ -71,5 +71,8 @@ class ACGTrieBase(object):
             ))
         return '\n'.join(output)
 
+    def allocated(self):
+        raise NotImplementedError()
+
     def __repr__(self):
         return self.to_table(10)

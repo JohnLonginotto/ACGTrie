@@ -95,3 +95,9 @@ class CPPACGTrie(ACGTrieBase):
             row_struct.a, row_struct.c, row_struct.g, row_struct.t,
             seq_buf.value,
         )
+
+    def allocated(self):
+        return dll.cpp_acg_trie_allocated(self._trie)
+
+    def __len__(self):
+        return dll.cpp_acg_trie_get_row_count(self._trie)

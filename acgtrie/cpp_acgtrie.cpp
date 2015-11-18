@@ -1,11 +1,60 @@
 #include <algorithm>
-#include <deque>
+#include <vector>
 #include <stdint.h>
 #include <string>
 #include <string.h>
 
 
 using namespace std;
+
+
+template<typename T, int bucket_size_power=10>
+struct VectorStack {
+    // This class is very similar in operation to std::deque, but
+    // seems to perform better than some implementations.
+    // Also its memory usage can be calculated as an extra benefit.
+    std::vector<T*> buckets;
+    size_t _size;
+
+    static const int bucket_size = 1 << bucket_size_power;
+    static const int bucket_mask = bucket_size - 1;
+
+    VectorStack() {
+        _size = 0;
+        buckets.reserve(1<<10);
+    }
+
+    ~VectorStack() {
+        for (T* bucket : buckets) {
+            delete[] bucket;
+        }
+    }
+
+    void push_back(const T &value) {
+        size_t index = _size++;
+        size_t bucket_index = index >> bucket_size_power;
+        int item_index = index & bucket_mask;
+
+        if (bucket_index >= buckets.size()) {
+            buckets.push_back(new T[bucket_size]);
+        }
+        buckets[bucket_index][item_index] = value;
+    }
+
+    T &operator[](size_t index) {
+        size_t bucket_index = index >> bucket_size_power;
+        int item_index = index & bucket_mask;
+        return buckets[bucket_index][item_index];
+    }
+
+    size_t size() {
+        return _size;
+    }
+
+    size_t allocated() {
+        return buckets.size() * bucket_size * sizeof(T);
+    }
+};
 
 
 inline int letter_to_code(char c) {
@@ -169,7 +218,7 @@ struct ScanResults {
 
 
 struct CPPACGTrie {
-    deque<Row> rows;
+    VectorStack<Row> rows;
 
     CPPACGTrie() {
         rows.push_back(Row());
@@ -278,6 +327,10 @@ struct CPPACGTrie {
             row_idx = new_row_idx;
         }
     }
+
+    uint64_t allocated() {
+        return rows.allocated();
+    }
 };
 
 
@@ -319,5 +372,9 @@ extern "C" {
     void cpp_acg_trie_get_row(CPPACGTrie *trie, int idx, Row *row, char *seq) {
         *row = trie->rows[idx];
         strcpy(seq, row->seq.to_string().c_str());
+    }
+
+    size_t cpp_acg_trie_allocated(CPPACGTrie *trie) {
+        return trie->allocated();
     }
 }
