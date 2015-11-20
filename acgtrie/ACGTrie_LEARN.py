@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 
-## Valid options are 'cffi', 'ctypes' and 'numpy'
-arrayKind = 'cffi'
-if arrayKind == 'cffi': import cffi      ; print '   [ Using cffi ]'
-if arrayKind == 'numpy': import numpy    ; print '   [ Using numpy ]'
-if arrayKind == 'ctypes': import ctypes  ; print '   [ Using ctypes ]'
-
 import csv
 import sys
 import json
@@ -15,6 +9,26 @@ import tempfile
 import datetime
 import itertools
 import collections
+
+## Valid options are 'cffi', 'ctypes' and 'numpy'. 
+arrayKind = 'cffi'
+
+## We test to see if we can use the above C array module.
+if arrayKind == 'cffi': import cffi      ; print '   [ Using cffi ]'
+if arrayKind == 'numpy': import numpy    ; print '   [ Using numpy ]'
+if arrayKind == 'ctypes': import ctypes  ; print '   [ Using ctypes ]'
+if "__pypy__" in sys.builtin_module_names:
+    if arrayKind == 'ctypes': print 'WARN: The pypy ctypes module does not support ctypes.resize(). Please make sure you use enough RAM (--rows) when you start, because we cant add more later :('
+    if arrayKind == 'numpy':
+        try: import numpy
+        except: print 'ERROR: You are using pypy, but you havent installed numpy for pypy (numpypy) yet! Go to the site and grab the latest version to continue :)'; exit()
+else:
+    if arrayKind == 'numpy':
+        try: import numpy
+        except: print 'ERROR: You do not have numpy installed! Grab it via pip install numpy :)'; exit()
+    if arrayKind == 'cffi':
+        try: cffi.FFI().memmove
+        except: print 'WARN: The version of cffi you have does not support memmove(). Please make sure you use enough RAM (--rows) when you start, because we cant add more later :('
 
 ## Parse user-supplied command line options:
 parser = argparse.ArgumentParser(     description="Put in a BAM file or fragments of DNA, get out an ACGTrie table.")
@@ -51,7 +65,6 @@ def up2bit_list(value):
     value = int(value)
     up2bits = [((value >> x) & 3) for x in range(0,64,2)]
     return up2bits[:-up2bits[::-1].index(1)-1]                 ## A fancy way of saying 'reverse the list, and cut off the '01' cap and everything before it'.
-
 
 ## We start by using this function to see if the existing/new DNA lists matches or not:
 def firstNonMatching(longerDNA,shorterDNA):
@@ -185,7 +198,6 @@ def getRAM():
         else: print "   [ RAM used @ %3.1f%sb ]" % (num, unit); return
 
 ## These two functions are used when ACGTrie is called with --fragment:
-seqChunks = collections.defaultdict(int)
 def subfragment(DNA,count):
     for l in range(len(DNA)-1,-1,-1):
         seqChunks[DNA[l:]] += count
@@ -202,6 +214,13 @@ def growTrie():
     # memory at once for some period of time, but since our columns are individual
     # arrays, we only require 28% of the RAM that doing it as a single array takes.
     # This is also why we extend SEQ first.
+    global A
+    global C
+    global G
+    global T
+    global COUNT
+    global SEQ
+
     if arrayKind == 'numpy':
         SEQ = numpy.concatenate((SEQ,numpy.zeros(10000000, dtype='int64')))
         A = numpy.concatenate((A,numpy.zeros(10000000, dtype='uint32')))
@@ -225,12 +244,12 @@ def growTrie():
         COUNT = (A._type_*newSize).from_address(ctypes.addressof(COUNT))
     elif arrayKind == 'cffi':
         try:
-            tempA     = A;     A     = ffi.new("uint32_t[]", len(A)+10000000);     ffi.memmove(A,tempA,len(tempA))
-            tempC     = C;     C     = ffi.new("uint32_t[]", len(C)+10000000);     ffi.memmove(C,tempC,len(tempC))
-            tempG     = G;     G     = ffi.new("uint32_t[]", len(G)+10000000);     ffi.memmove(G,tempG,len(tempG))
-            tempT     = T;     T     = ffi.new("uint32_t[]", len(T)+10000000);     ffi.memmove(T,tempT,len(tempT))
-            tempCOUNT = COUNT; COUNT = ffi.new("uint32_t[]", len(COUNT)+10000000); ffi.memmove(COUNT,tempCOUNT,len(tempCOUNT))
-            tempSEQ   = SEQ;   SEQ   = ffi.new("int64_t[]", len(SEQ)+10000000);    ffi.memmove(SEQ,tempSEQ,len(tempSEQ))
+            tempA     = A;     A     = ffi.new("uint32_t[]", len(A)+10000000);     ffi.memmove(A,tempA,len(tempA)*(ffi.sizeof(A)/len(A)))
+            tempC     = C;     C     = ffi.new("uint32_t[]", len(C)+10000000);     ffi.memmove(C,tempC,len(tempC)*(ffi.sizeof(C)/len(C)))
+            tempG     = G;     G     = ffi.new("uint32_t[]", len(G)+10000000);     ffi.memmove(G,tempG,len(tempG)*(ffi.sizeof(G)/len(G)))
+            tempT     = T;     T     = ffi.new("uint32_t[]", len(T)+10000000);     ffi.memmove(T,tempT,len(tempT)*(ffi.sizeof(T)/len(T)))
+            tempCOUNT = COUNT; COUNT = ffi.new("uint32_t[]", len(COUNT)+10000000); ffi.memmove(COUNT,tempCOUNT,len(tempCOUNT)*(ffi.sizeof(COUNT)/len(COUNT)))
+            tempSEQ   = SEQ;   SEQ   = ffi.new("int64_t[]", len(SEQ)+10000000);    ffi.memmove(SEQ,tempSEQ,len(tempSEQ)*(ffi.sizeof(SEQ)/len(SEQ)))
         except AttributeError:
             print 'ERROR! Your version of python does not fully support cffi! Please upgrade, or set the intial amount of RAM to something larger.'
             exit()
@@ -288,6 +307,8 @@ elif  arrayKind == 'cffi':
 ## Create row 0, the root row/node:
 A[0],C[0],G[0],T[0],COUNT[0],SEQ[0] = 0,0,0,0,0,1
 nextRowToAdd = 1
+countOverflow = {}
+warpOverflow = {}
 getRAM()
 
 #########################
@@ -321,16 +342,19 @@ stats = fileStats(firstFragment[0],firstFragment[1])
 
 ## If ACGTrie has to fragment the reads to get DNA composition itself:
 if args.fragment:
+    seqChunks = collections.defaultdict(int)
     subfragment(firstFragment[0],firstFragment[1])
     for DNA,count in stdin:
         stats.add(DNA,count)
         subfragment(DNA,count)
-        if linesRead % 10000 == 0: emptyCache(add,nextRowToAdd)
+        if len(seqChunks) > 100000:
+            if nextRowToAdd + 100000 > len(A): growTrie()
+            emptyCache(add,nextRowToAdd)
     emptyCache(add,nextRowToAdd)
 
 ## Else, we just go straight into it.
 else:
-    add(firstFragment[0],firstFragment[1])
+    add(*firstFragment)
     for DNA,count in stdin:
         stats.add(DNA,count)
         add(DNA,count)
@@ -367,7 +391,7 @@ uint32_head = {
     'countOverflow': countOverflow,
     'warpOverflow': warpOverflow
 }
-int64_head = dict(uint32); int64['structs'] = 'int64'
+int64_head = dict(uint32_head); int64_head['structs'] = 'int64'
 uint32_json = json.dumps(uint32_head,sort_keys=True, indent=4)       ## The header format here is exactly the
 int64_json = json.dumps(int64_head,sort_keys=True, indent=4)       ## The header format here is exactly the
 if uint32_json.count('\n') < 100:
@@ -381,12 +405,12 @@ while header32.count('\n') < 99:
     header64 += '\n'
 header32 += 'HEADER_END\n'                                        ## with HEADER_END on the 100th line so
 header64 += 'HEADER_END\n'                                        ## "head -100 ./file" or "tail +101 ./file"
-fileA     = open(args.output + '.A', 'wb');     fileA.write(header)
-fileC     = open(args.output + '.C', 'wb');     fileC.write(header)
-fileG     = open(args.output + '.G', 'wb');     fileG.write(header)
-fileT     = open(args.output + '.T', 'wb');     fileT.write(header)
-fileCOUNT = open(args.output + '.COUNT', 'wb'); fileCOUNT.write(header)
-fileSEQ   = open(args.output + '.SEQ', 'wb');   fileSEQ.write(header)
+fileA     = open(args.output + '.A', 'wb');     fileA.write(header32)
+fileC     = open(args.output + '.C', 'wb');     fileC.write(header32)
+fileG     = open(args.output + '.G', 'wb');     fileG.write(header32)
+fileT     = open(args.output + '.T', 'wb');     fileT.write(header32)
+fileCOUNT = open(args.output + '.COUNT', 'wb'); fileCOUNT.write(header32)
+fileSEQ   = open(args.output + '.SEQ', 'wb');   fileSEQ.write(header64)
 
 if sys.byteorder == 'big':
     print '   [ Flipping eggs. ]'; ## Little Endians 4 lyfe yo.
@@ -394,6 +418,7 @@ if sys.byteorder == 'big':
     else:
         print 'Support for byteswap in cffi is comming soon! Until then, youll have to swap manually in numpy on loading the data on another machine.'
 
+print len(A)
 if arrayKind == 'numpy':
     fileA.write(A[:nextRowToAdd])
     fileC.write(C[:nextRowToAdd])
@@ -428,14 +453,15 @@ fileCOUNT.close()
 fileSEQ.close()
 
 '''
-rstrip vs [:-1] ?
-OVERFLOWS
+Determine 
 Future ideas:
 DEPTH array? Has the depth of the row/node in the trie. uint8 as depth unlikely to be bigger than 256.
 BACK array ? Has the row number for the parent row. uint32.
 Any way to compress this data but still randomly-access it's contents? Numpy's memmap only works on uncompressed. Maybe use HD5F? Overhead? (No pytables support in pypy)
 Function just like addNodeWalk but only +1s to the last node, not the intermediate nodes.
+
+Post-processing ideas:
 Sort table. I think compression will work a lot better if the table is sorted by SEQ or something. Branches of trei dont need sorting, just array whilst correcting A/C/G/T/BACK pipes.
-Compact table. The table is actually not at optimal size after being made. Rows 'deeper' in the trie can be merged to nodes higher up which now have space because they were once.
+Compact table. The table is actually not at optimal size after being made. Rows 'deeper' in the trie can be merged to nodes higher up which now have space because they were split.
 Delete rows. Delete rows from the table with a count lower than X or a depth higher than X. Pipes need to be maintained.
 '''
