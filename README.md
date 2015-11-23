@@ -1,4 +1,6 @@
 # ACGTrie
+**[UPDATE: For the latest and fastest code, check out the dev branch by Jim Bailey!]**
+
 Make exploring DNA composition easy!
 
 Sequenced DNA has two inherent properties - it's position in the genome/transcriptome from which it came, and the composition of the DNA itself.
